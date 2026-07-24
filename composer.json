@@ -16,7 +16,7 @@
     "require": {
         "php": ">=8.4",
         "cakephp/cakephp": "^5.0",
-        "league/event": "^2.0",
+        "league/event": "^3.0",
         "psr/log": "^3.0"
     },
     "suggest": {

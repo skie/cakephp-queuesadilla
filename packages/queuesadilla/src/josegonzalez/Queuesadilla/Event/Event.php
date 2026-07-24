@@ -2,15 +2,15 @@
 
 namespace josegonzalez\Queuesadilla\Event;
 
-use League\Event\AbstractEvent;
+use League\Event\HasEventName;
+use Psr\EventDispatcher\StoppableEventInterface;
 
 /**
  * Represents the transport class of events across the system. It receives a name, subject and an optional
  * payload. The name can be any string that uniquely identifies the event across the application, while the subject
  * represents the object that the event applies to.
- *
  */
-class Event extends AbstractEvent
+class Event implements HasEventName, StoppableEventInterface
 {
     /**
      * Name of the event
@@ -22,7 +22,7 @@ class Event extends AbstractEvent
     /**
      * The object this event applies to (usually the same object that generates the event)
      *
-     * @var object
+     * @var object|null
      */
     protected $subject;
 
@@ -39,6 +39,11 @@ class Event extends AbstractEvent
      * @var mixed
      */
     public $result = null;
+
+    /**
+     * @var bool
+     */
+    protected $propagationStopped = false;
 
     public function __construct($name, $subject = null, $data = null)
     {
@@ -60,6 +65,14 @@ class Event extends AbstractEvent
         if ($attribute === 'name' || $attribute === 'subject') {
             return $this->{$attribute}();
         }
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function eventName(): string
+    {
+        return (string)$this->name;
     }
 
     /**
@@ -85,11 +98,29 @@ class Event extends AbstractEvent
     /**
      * Returns the subject of this event
      *
-     * @return string
+     * @return object|null
      */
     public function subject()
     {
         return $this->subject;
+    }
+
+    /**
+     * Stop event propagation.
+     *
+     * @return void
+     */
+    public function stopPropagation(): void
+    {
+        $this->propagationStopped = true;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function isPropagationStopped(): bool
+    {
+        return $this->propagationStopped;
     }
 
     /**

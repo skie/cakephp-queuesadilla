@@ -43,40 +43,47 @@ class StatsListener extends MultiEventListener
         ];
     }
 
-    public function connectionFailed()
+    public function connectionFailed($event = null)
     {
         $this->stats['connectionFailed'] += 1;
     }
 
-    public function maxIterations()
+    public function maxIterations($event = null)
     {
         $this->stats['maxIterations'] += 1;
     }
-    public function maxRuntime()
+
+    public function maxRuntime($event = null)
     {
         $this->stats['maxRuntime'] += 1;
     }
-    public function jobSeen()
+
+    public function jobSeen($event = null)
     {
         $this->stats['seen'] += 1;
     }
-    public function jobEmpty()
+
+    public function jobEmpty($event = null)
     {
         $this->stats['empty'] += 1;
     }
-    public function jobInvalid()
+
+    public function jobInvalid($event = null)
     {
         $this->stats['invalid'] += 1;
     }
-    public function jobException()
+
+    public function jobException($event = null)
     {
         $this->stats['exception'] += 1;
     }
-    public function jobSuccess()
+
+    public function jobSuccess($event = null)
     {
         $this->stats['success'] += 1;
     }
-    public function jobFailure()
+
+    public function jobFailure($event = null)
     {
         $this->stats['failure'] += 1;
     }

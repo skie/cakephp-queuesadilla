@@ -2,7 +2,7 @@
 
 require 'vendor/autoload.php';
 
-use League\Event\AbstractEvent;
+use josegonzalez\Queuesadilla\Event\Event;
 use josegonzalez\Queuesadilla\Queue;
 use josegonzalez\Queuesadilla\Worker\Listener\DummyListener;
 use Monolog\Formatter\LineFormatter;
@@ -72,7 +72,7 @@ $queue = new Queue($engine);
 $worker = new $WorkerClass($engine, $logger, ['maxIterations' => 5]);
 
 // Add some callbacks
-$queue->attachListener('Queue.afterEnqueue', function (AbstractEvent $event) use ($callbackLogger) {
+$queue->attachListener('Queue.afterEnqueue', function (Event $event) use ($callbackLogger) {
     $data = $event->data();
     $item = $data['item'];
     $success = $data['success'];
