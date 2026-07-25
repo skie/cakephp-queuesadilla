@@ -7,6 +7,8 @@ use Cake\Command\Command;
 use Cake\Console\Arguments;
 use Cake\Console\ConsoleIo;
 use Cake\Console\ConsoleOptionParser;
+use Cake\Event\Event;
+use Cake\Event\EventManager;
 use Cake\Log\Log;
 use Josegonzalez\CakeQueuesadilla\Queue\Queue;
 use josegonzalez\Queuesadilla\Engine\Base as BaseEngine;
@@ -15,6 +17,14 @@ use Psr\Log\LoggerInterface;
 
 class QueuesadillaCommand extends Command
 {
+    /**
+     * Dispatched after the worker is constructed and before work() runs.
+     *
+     * Listeners receive `worker`, `engine`, and `args` in event data so they can
+     * attach league/event listeners to the worker instance.
+     */
+    public const WORKER_CREATED = 'Queuesadilla.worker.created';
+
     /**
      * Starts a Queuesadilla worker.
      *
@@ -37,6 +47,15 @@ class QueuesadillaCommand extends Command
 
         $engine = $this->getEngine($args, $logger);
         $worker = $this->getWorker($args, $engine, $logger);
+        EventManager::instance()->dispatch(new Event(
+            static::WORKER_CREATED,
+            $this,
+            [
+                'worker' => $worker,
+                'engine' => $engine,
+                'args' => $args,
+            ],
+        ));
         $worker->work();
 
         return static::CODE_SUCCESS;

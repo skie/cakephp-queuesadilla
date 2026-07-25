@@ -4,6 +4,8 @@ declare(strict_types=1);
 namespace Josegonzalez\CakeQueuesadilla\Queue;
 
 use Cake\Core\StaticConfigTrait;
+use Cake\Event\Event;
+use Cake\Event\EventManager;
 use Cake\Utility\Hash;
 use InvalidArgumentException;
 use josegonzalez\Queuesadilla\Engine\EngineInterface;
@@ -58,6 +60,13 @@ class Queue
     use StaticConfigTrait {
         parseDsn as protected _parseDsn;
     }
+
+    /**
+     * Dispatched after a job is pushed (Queue.afterEnqueue bridge to Cake EventManager).
+     *
+     * Event data: `config` (string), `item` (array), `success` (bool).
+     */
+    public const JOB_PUSHED = 'Queuesadilla.job.pushed';
 
     /**
      * An array mapping url schemes to fully qualified queuing engine
@@ -269,8 +278,40 @@ class Queue
         }
 
         $engine = static::engine($config);
+        $queuer = new Queuer($engine);
+        static::attachJobPushedBridge($queuer, $config);
 
-        return static::$_queuers[$config] = new Queuer($engine);
+        return static::$_queuers[$config] = $queuer;
+    }
+
+    /**
+     * Bridge league Queue.afterEnqueue to Cake EventManager for host listeners.
+     *
+     * @param \josegonzalez\Queuesadilla\Queue $queuer Queuesadilla queue instance.
+     * @param string $config Queue config name.
+     * @return void
+     */
+    protected static function attachJobPushedBridge(Queuer $queuer, string $config): void
+    {
+        $queuer->attachListener('Queue.afterEnqueue', function (object $event) use ($config): void {
+            $payload = [];
+            if (method_exists($event, 'data')) {
+                $data = $event->data();
+                if (is_array($data)) {
+                    $payload = $data;
+                }
+            }
+
+            EventManager::instance()->dispatch(new Event(
+                static::JOB_PUSHED,
+                null,
+                [
+                    'config' => $config,
+                    'item' => is_array($payload['item'] ?? null) ? $payload['item'] : [],
+                    'success' => (bool)($payload['success'] ?? false),
+                ],
+            ));
+        });
     }
 
     /**

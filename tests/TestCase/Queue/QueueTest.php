@@ -116,6 +116,37 @@ class QueueTest extends TestCase
     }
 
     /**
+     * Ensure Queue::push dispatches Queuesadilla.job.pushed via afterEnqueue bridge.
+     *
+     * @return void
+     */
+    public function testPushDispatchesJobPushedEvent(): void
+    {
+        Queue::setConfig('memory', [
+            'url' => 'memory://',
+        ]);
+
+        /** @var \Cake\Event\Event|null $received */
+        $received = null;
+        \Cake\Event\EventManager::instance()->on(
+            Queue::JOB_PUSHED,
+            function (\Cake\Event\Event $event) use (&$received): void {
+                $received = $event;
+            },
+        );
+
+        $ok = Queue::push('strlen', ['hello'], ['config' => 'memory', 'queue' => 'demo']);
+        $this->assertTrue($ok);
+        $this->assertInstanceOf(\Cake\Event\Event::class, $received);
+        $this->assertTrue((bool)$received->getData('success'));
+        $this->assertSame('memory', $received->getData('config'));
+        $item = $received->getData('item');
+        $this->assertIsArray($item);
+        $this->assertSame('demo', $item['queue']);
+        $this->assertSame('strlen', $item['class']);
+    }
+
+    /**
      * Ensure Queue resets correctly
      *
      * @return void

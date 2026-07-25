@@ -6,12 +6,16 @@ namespace Josegonzalez\CakeQueuesadilla\Test\TestCase\Command;
 use Cake\Console\Arguments;
 use Cake\Console\ConsoleOptionParser;
 use Cake\Console\TestSuite\ConsoleIntegrationTestTrait;
+use Cake\Event\Event;
+use Cake\Event\EventManager;
 use Cake\Log\Log;
 use Cake\TestSuite\TestCase;
 use Josegonzalez\CakeQueuesadilla\Command\QueuesadillaCommand;
 use Josegonzalez\CakeQueuesadilla\Queue\Queue;
+use josegonzalez\Queuesadilla\Engine\Base as BaseEngine;
 use josegonzalez\Queuesadilla\Engine\MysqlEngine;
 use josegonzalez\Queuesadilla\Engine\NullEngine;
+use josegonzalez\Queuesadilla\Worker\Base as BaseWorker;
 use josegonzalez\Queuesadilla\Worker\SequentialWorker;
 use josegonzalez\Queuesadilla\Worker\TestWorker;
 use Psr\Log\NullLogger;
@@ -117,5 +121,34 @@ class QueuesadillaCommandTest extends TestCase
 
         $this->exec('queuesadilla --worker Test');
         $this->assertExitSuccess();
+    }
+
+    /**
+     * Test that execute dispatches Queuesadilla.worker.created before work().
+     *
+     * @return void
+     */
+    public function testExecuteDispatchesWorkerCreatedEvent(): void
+    {
+        /** @var \Cake\Event\Event|null $received */
+        $received = null;
+        EventManager::instance()->on(
+            QueuesadillaCommand::WORKER_CREATED,
+            function (Event $event) use (&$received): void {
+                $received = $event;
+            },
+        );
+
+        Queue::setConfig('default', [
+            'url' => 'memory://',
+            'maxRuntime' => 1,
+        ]);
+
+        $this->exec('queuesadilla --worker Test');
+        $this->assertExitSuccess();
+        $this->assertInstanceOf(Event::class, $received);
+        $this->assertInstanceOf(BaseWorker::class, $received->getData('worker'));
+        $this->assertInstanceOf(BaseEngine::class, $received->getData('engine'));
+        $this->assertInstanceOf(Arguments::class, $received->getData('args'));
     }
 }
